@@ -1,155 +1,131 @@
-import React from 'react'
-import { FileText, Shield, AlertTriangle, CheckSquare, Download, Printer } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { ReportEditor } from '@/components/report/ReportEditor'
+import { ReportPreview } from '@/components/report/ReportPreview'
+import { FileUploader } from '@/components/upload/FileUploader'
 import { useReportStore } from '@/store/reportStore'
 import { useLogStore } from '@/store/logStore'
+import { generateAutoReport } from '@/lib/reportAutoGenerator'
+import { FileText, Edit3, Eye, Columns } from 'lucide-react'
 
 export const ReportPage: React.FC = () => {
+  const { logs, incidents } = useLogStore()
   const report = useReportStore()
-  const { incidents } = useLogStore()
+  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split')
 
-  const criticals = incidents.filter((i) => i.risk === 'CRITICAL')
+  // Auto-llenar las secciones si aún no tienen datos y hay logs disponibles
+  useEffect(() => {
+    if (logs.length > 0 && report.findings.length === 0 && incidents.length > 0) {
+      const generated = generateAutoReport(incidents, logs, {
+        caseNumber: report.caseNumber,
+        analyst: report.analyst,
+        organization: report.organization,
+        classification: report.classification,
+      })
 
-  return (
-    <div className="space-y-6">
-      {/* Cabecera */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/20 pb-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-on-surface flex items-center gap-2.5">
-            <FileText className="w-6 h-6 text-tertiary" />
+      report.setExecutiveSummary(generated.executiveSummary)
+      report.setFindings(generated.findings)
+      report.setTechnicalExplanation(generated.technicalExplanation)
+      report.setEvidenceLogs(generated.evidenceLogs)
+      report.setCritique(generated.critique)
+      report.setOrganizationalImpact(generated.organizationalImpact)
+      report.setActionPlan({
+        actionInvestigate: generated.actionInvestigate,
+        actionContain: generated.actionContain,
+        actionRemediate: generated.actionRemediate,
+      })
+      report.setRecommendations(generated.recommendations)
+    }
+  }, [logs.length, incidents.length])
+
+  if (logs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto text-center gap-6">
+        <div className="space-y-2">
+          <FileText className="w-12 h-12 text-tertiary mx-auto" />
+          <h2 className="text-2xl font-bold tracking-tight text-on-surface">
             Generador de Informes Forenses L2
           </h2>
+          <p className="text-sm text-on-surface-variant">
+            Cargue un archivo Excel (.xlsx) para auto-sintetizar las 9 secciones del informe con previsualización A4 en tiempo real.
+          </p>
+        </div>
+        <FileUploader />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Selector de Modo de Vista Segmentado */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/20 pb-3">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+            <FileText className="w-5 h-5 text-tertiary" />
+            Editor Forense & Previsualización A4
+          </h2>
           <p className="text-xs text-on-surface-variant font-mono mt-0.5">
-            Estructura formal de 9 secciones con vista previa A4 y exportación a PDF (Fase 6)
+            9 secciones estructuradas con actualización bidireccional en tiempo real
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="inline-flex items-center p-1 bg-surface-container rounded-xl border border-outline-variant/30 text-xs font-mono">
           <button
-            onClick={() => alert('La exportación directa a PDF A4 se integrará en la Fase 7.')}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary-container text-on-primary-container text-xs font-mono font-semibold hover:bg-primary-container/90 transition-all shadow"
+            onClick={() => setViewMode('split')}
+            className={`hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              viewMode === 'split'
+                ? 'bg-primary-container text-on-primary-container font-bold shadow'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
           >
-            <Download className="w-4 h-4" />
-            <span>Descargar PDF</span>
+            <Columns className="w-3.5 h-3.5" />
+            <span>Dividida (Editor + A4)</span>
           </button>
+
           <button
-            onClick={() => window.print()}
-            className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"
-            title="Imprimir"
+            onClick={() => setViewMode('editor')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              viewMode === 'editor'
+                ? 'bg-primary-container text-on-primary-container font-bold shadow'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
           >
-            <Printer className="w-4 h-4" />
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>9 Secciones</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('preview')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              viewMode === 'preview'
+                ? 'bg-primary-container text-on-primary-container font-bold shadow'
+                : 'text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Hoja A4 Live</span>
           </button>
         </div>
       </div>
 
-      {/* Grid de Secciones del Reporte */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Panel Resumen del Caso */}
-        <div className="md:col-span-1 bg-surface-container rounded-2xl p-5 border border-outline-variant/30 space-y-4 shadow-sm">
-          <div className="flex items-center gap-2 text-primary font-bold text-sm border-b border-outline-variant/20 pb-2">
-            <Shield className="w-4 h-4" />
-            <span>Sección 1: Datos del Caso</span>
+      {/* Contenedor Principal: Dividido o Pestaña Única */}
+      {viewMode === 'split' ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+          <div className="space-y-4">
+            <ReportEditor />
           </div>
-
-          <div className="space-y-2 text-xs font-mono">
-            <div>
-              <span className="text-on-surface-variant">Número de Caso:</span>
-              <p className="font-bold text-on-surface">{report.caseNumber}</p>
-            </div>
-            <div>
-              <span className="text-on-surface-variant">Analista Asignado:</span>
-              <p className="font-bold text-on-surface">{report.analyst}</p>
-            </div>
-            <div>
-              <span className="text-on-surface-variant">Organización:</span>
-              <p className="font-bold text-on-surface">{report.organization}</p>
-            </div>
-            <div>
-              <span className="text-on-surface-variant">Clasificación:</span>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded bg-error-container/40 text-error font-bold text-[10px] border border-error/30">
-                {report.classification}
-              </span>
-            </div>
+          <div className="sticky top-20">
+            <ReportPreview />
           </div>
         </div>
-
-        {/* Panel Resumen de Secciones 2-9 */}
-        <div className="md:col-span-2 bg-surface-container rounded-2xl p-5 border border-outline-variant/30 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-2">
-            <div className="flex items-center gap-2 text-tertiary font-bold text-sm">
-              <CheckSquare className="w-4 h-4" />
-              <span>Estructura del Informe (9 Secciones Forenses)</span>
-            </div>
-            <span className="font-mono text-xs text-on-surface-variant">
-              {incidents.length} Hallazgos Listos
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-primary font-bold">S2. Resumen Ejecutivo</span>
-              <p className="text-on-surface-variant text-[11px]">
-                {criticals.length} amenazas críticas detectadas, incluyendo ransomware y fuga de datos.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-secondary font-bold">S3. Hallazgos Forenses</span>
-              <p className="text-on-surface-variant text-[11px]">
-                {incidents.length} incidentes clasificados con confirmación analista.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-tertiary font-bold">S4. Explicación Técnica</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Correlación MITRE ATT&CK, TTPs y artefactos de ejecución.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-amber-400 font-bold">S5. Evidencias Clave</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Tablas raw de logs de seguridad asociados a cada ataque.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-orange-400 font-bold">S6. Crítica y Justificación</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Argumentación de severidad basada en matrices de riesgo.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-rose-400 font-bold">S7. Impacto Organizacional</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Afectación operacional, confidencialidad y continuidad.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-primary font-bold">S8. Plan de Acción</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Fases de Investigación, Contención Activa y Remediación.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 space-y-1">
-              <span className="text-tertiary font-bold">S9. Recomendaciones</span>
-              <p className="text-on-surface-variant text-[11px]">
-                Hardening de políticas de contraseñas, RDP, y endpoints.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3 bg-surface-container-lowest rounded-xl font-mono text-[11px] text-tertiary flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-secondary shrink-0" />
-            <span>
-              El editor interactivo dividido con previsualización PDF A4 en vivo se desarrollará en las Fases 6 y 7.
-            </span>
-          </div>
+      ) : viewMode === 'editor' ? (
+        <div className="max-w-4xl mx-auto">
+          <ReportEditor />
         </div>
-      </div>
+      ) : (
+        <div className="max-w-4xl mx-auto">
+          <ReportPreview />
+        </div>
+      )}
     </div>
   )
 }
