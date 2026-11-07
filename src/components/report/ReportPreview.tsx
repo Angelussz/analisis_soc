@@ -1,21 +1,40 @@
-import React, { useRef } from 'react'
-import { Printer, Download, FileText } from 'lucide-react'
+import React, { useRef, useState } from 'react'
+import { Printer, Download, Eye, FileText, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { useReportStore } from '@/store/reportStore'
+import { exportReportToPdf } from '@/lib/pdfExporter'
 
-interface ReportPreviewProps {
-  onExportPdf?: () => void
-}
-
-export const ReportPreview: React.FC<ReportPreviewProps> = ({ onExportPdf }) => {
+export const ReportPreview: React.FC = () => {
   const report = useReportStore()
   const printRef = useRef<HTMLDivElement>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [actionDone, setActionDone] = useState<string | null>(null)
 
   const confirmedFindings = report.findings.filter((f) => f.confirmed)
+
+  const handleExport = async (action: 'download' | 'preview') => {
+    setIsExporting(true)
+    setActionDone(null)
+
+    try {
+      await exportReportToPdf('a4-report-canvas', {
+        caseNumber: report.caseNumber,
+        date: report.incidentDate,
+        action,
+      })
+      setActionDone(action === 'download' ? 'PDF Descargado exitosamente' : 'PDF abierto en nueva pestaña')
+      setTimeout(() => setActionDone(null), 3000)
+    } catch (err) {
+      console.error(err)
+      alert('Error al generar el documento PDF. Asegúrese de que el lienzo esté visible.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
       {/* Barra de Controles de la Hoja A4 */}
-      <div className="flex items-center justify-between p-3 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-surface-container border border-outline-variant/30 text-xs font-mono">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-secondary" />
           <span className="text-on-surface font-semibold">Previsualización A4 en Vivo</span>
@@ -23,21 +42,41 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onExportPdf }) => 
           <span className="text-tertiary">Escala 1:1.414</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {actionDone && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-tertiary mr-1 animate-in fade-in">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {actionDone}
+            </span>
+          )}
+
           <button
             onClick={() => window.print()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-xs font-mono text-on-surface transition-colors"
+            title="Imprimir documento formal"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Imprimir</span>
           </button>
 
           <button
-            onClick={onExportPdf}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary-container text-on-primary-container font-mono text-xs font-bold hover:bg-primary-container/90 transition-all shadow"
+            onClick={() => handleExport('preview')}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-xs font-mono font-semibold text-secondary transition-colors border border-secondary/30 disabled:opacity-50"
+            title="Ver PDF en nueva pestaña"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar PDF</span>
+            {isExporting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>Ver PDF</span>
+          </button>
+
+          <button
+            onClick={() => handleExport('download')}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary-container text-on-primary-container font-mono text-xs font-bold hover:bg-primary-container/90 transition-all shadow disabled:opacity-50 active:scale-95"
+            title="Descargar archivo PDF A4"
+          >
+            {isExporting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            <span>Descargar PDF</span>
           </button>
         </div>
       </div>
@@ -227,7 +266,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ onExportPdf }) => 
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center gap-1.5">
               <span>7.0</span> Recomendaciones Estratégicas de Hardening
             </h2>
-            <ul className="list-disc list-inside space-y-0.5 text-[10px] text-slate-700">
+            <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[10px]">
               {report.recommendations.slice(0, 5).map((rec, idx) => (
                 <li key={idx}>{rec}</li>
               ))}

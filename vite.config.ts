@@ -21,6 +21,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           charts: ['recharts'],
           xlsx: ['xlsx'],
+          pdf: ['jspdf', 'html2canvas'],
         },
       },
     },
