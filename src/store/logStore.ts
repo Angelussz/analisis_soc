@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { LogEntry, Incident, WorkerResponse } from '@/types/log.types'
 
+export type NavigationTab = 'dashboard' | 'incidents' | 'logs' | 'report'
+
 interface LogStoreState {
   logs: LogEntry[]
   incidents: Incident[]
@@ -11,8 +13,10 @@ interface LogStoreState {
   fileSize: number | null
   error: string | null
   selectedLog: LogEntry | null
+  activeTab: NavigationTab
 
   // Acciones
+  setActiveTab: (tab: NavigationTab) => void
   analyzeFile: (file: File) => Promise<void>
   setLogs: (logs: LogEntry[]) => void
   setIncidents: (incidents: Incident[]) => void
@@ -30,6 +34,9 @@ export const useLogStore = create<LogStoreState>((set) => ({
   fileSize: null,
   error: null,
   selectedLog: null,
+  activeTab: 'dashboard',
+
+  setActiveTab: (activeTab) => set({ activeTab }),
 
   analyzeFile: async (file: File) => {
     set({

@@ -13,4 +13,16 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          charts: ['recharts'],
+          xlsx: ['xlsx'],
+        },
+      },
+    },
+  },
 })
