@@ -1,5 +1,6 @@
 import { parseExcelLogs } from '@/lib/parser'
-import type { WorkerResponse, Incident } from '@/types/log.types'
+import { runCorrelationPipeline } from '@/lib/correlator'
+import type { WorkerResponse } from '@/types/log.types'
 
 // Declaración de contexto Worker
 const ctx: Worker = self as unknown as Worker
@@ -18,22 +19,18 @@ ctx.addEventListener('message', async (event: MessageEvent) => {
     }
 
     postProgress(15, 'Leyendo archivo Excel...')
-
-    // Simular un micro delay para permitir que la UI pinte la barra suavemente
-    await new Promise((resolve) => setTimeout(resolve, 80))
-
-    postProgress(40, 'Extrayendo y mapeando 12 columnas fijas SIEM...')
-    const logs = parseExcelLogs(fileBuffer)
-
-    postProgress(75, `Normalizados ${logs.length} eventos de seguridad...`)
     await new Promise((resolve) => setTimeout(resolve, 60))
 
-    postProgress(90, 'Estructurando registros para el almacén forense...')
+    postProgress(35, 'Extrayendo y mapeando 12 columnas fijas SIEM...')
+    const logs = parseExcelLogs(fileBuffer)
 
-    // En Fase 2 los detectores aún no se ejecutan (se integrarán en Fase 3)
-    const incidents: Incident[] = []
+    postProgress(60, `Normalizados ${logs.length} eventos. Ejecutando 6 detectores heurísticos...`)
+    await new Promise((resolve) => setTimeout(resolve, 80))
 
-    postProgress(100, 'Análisis en hilo secundario completado.')
+    postProgress(85, 'Correlacionando vectores de ataque y calculando criticidad...')
+    const incidents = runCorrelationPipeline(logs)
+
+    postProgress(100, `Análisis finalizado: ${incidents.length} incidentes identificados.`)
 
     const successMsg: WorkerResponse = {
       type: 'SUCCESS',
