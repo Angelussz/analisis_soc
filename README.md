@@ -12,7 +12,8 @@ Plataforma forense moderna y de alto rendimiento diseñada para analistas de cib
 Permite la ingesta pericial de registros SIEM exportados en hojas de cálculo Excel (`.xlsx`), parseo multi-hilo en segundo plano mediante **Web Workers**, detección heurística de amenazas mapeadas a la matriz **MITRE ATT&CK**, correlación cruzada de vectores de ataque y la redacción/exportación automática de informes forenses de **9 secciones estructuradas** con previsualización en hoja A4 en tiempo real y exportación formal a PDF.
 
 ---
-
+## Link del proyecto
+[Analisis SOC LVL2](https://analisis-soc-eta.vercel.app)
 ## 🚀 Características Principales
 
 ### 1. Ingesta y Procesamiento 100% Client-Side (Zero-Backend)
